@@ -1,6 +1,9 @@
 use yahoo_finance_api as yahoo;
 use time::{OffsetDateTime, Duration};
 use tokio;
+use rand::Rng;
+use std::cmp::Ordering;
+use rust_xlsxwriter::{Format, FormatAlign, Workbook};
 
 struct Portfolio{
     cash: f64,
@@ -40,7 +43,7 @@ trait Rate {
 }
 impl Rate for f64{
     fn get_profit_rate(&self, initial_value : f64) -> f64{
-        (*self / initial_value) * 100.0 - 100.0
+        (*self / initial_value) - 1.0
     }
 }
 
@@ -52,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = yahoo::YahooConnector::new()?;
 
     let end = OffsetDateTime::now_utc();
-    let start = end - Duration::days(10000);
+    let start = end - Duration::days(rand::thread_rng().gen_range(1, 4000));
 
     // BTC-USD(비트코인)의 1일봉(1d) 데이터를 메모리로 직접 가져옴
     let response = provider.get_quote_history("SOXL", start, end).await?;
@@ -76,20 +79,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("--- 백테스트 시작 (초기 자산: $100,000) ---");
 
-    // 메모리에 로드된 배열을 순회하며 백테스트 진행
-    print!("\tBuy and hold");
-    for t in &threshold{
-        print!("\t\tRebalancing {}", t);
-    }
-    println!();
+    // 1. 새로운 엑셀 워크북(파일)과 시트 생성
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
 
-    print!("날짜");
-    for _ in &threshold{
-        print!("\tPrice\tProfit");
-    }
-    println!();
+    // 2. 글자를 한가운데로 예쁘게 모아줄 정렬 포맷 만들기
+    let center_format = Format::new()
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+    let percent_format = Format::new().set_num_format("0.00%");
+
+    worksheet.merge_range(0, 0, 1, 0, "날짜", &center_format)?;
+    worksheet.merge_range(0, 1, 0, 2, "단순보유", &center_format)?;
+    worksheet.write_string(1, 1, "가격")?;
+    worksheet.write_string(1, 2, "수익률")?;
     
-    for quote in &quotes {
+    for (i, t) in threshold.iter().enumerate(){
+        worksheet.merge_range(0, 3+2*(i as u16), 0, 4+2*(i as u16), &format!("리밸런싱({}%) 자산", t * 100.0), &center_format)?;        
+        worksheet.write_string(1, 3+2*(i as u16), "가격")?;
+        worksheet.write_string(1, 4+2*(i as u16), "수익률")?;
+    }
+    
+    let mut i = 2;
+    let mut val_vec = vec![0.0;threshold.len() + 2];
+    let mut acc_win = vec![0;threshold.len() + 2];
+    for quote in quotes.iter() {
         // 타임스탬프를 읽기 쉬운 날짜 문자열로 변환 (간단히 표시)
         let date = OffsetDateTime::from_unix_timestamp(quote.timestamp as i64)
             .unwrap()
@@ -98,28 +112,64 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
         let current_price = quote.close;
         let buy_and_hold_value = initial_qty * current_price + initial_cash;
-        print!("{}\t{:.2}\t{:.2}%\t", date, buy_and_hold_value, buy_and_hold_value.get_profit_rate(initial_capital));
+        worksheet.write_string(i as u32, 0, &date)?;
+        worksheet.write_number(i as u32, 1, buy_and_hold_value)?;
+        worksheet.write_number_with_format(i as u32, 2, buy_and_hold_value.get_profit_rate(initial_capital), &percent_format)?;
+        val_vec[threshold.len()] = buy_and_hold_value;
+        val_vec[threshold.len() + 1] = initial_capital;
         
-        for tester in backtester.iter_mut(){
+        for (j, tester) in backtester.iter_mut().enumerate(){
             tester.process_price(current_price);
             let current_value = tester.get_total_value(current_price);
-            print!("{:.2}\t{:.2}%\t", current_value, current_value.get_profit_rate(initial_capital));        
+            val_vec[j] = current_value;
+            worksheet.write_number(i as u32, 3+2*(j as u16), current_value)?;
+            worksheet.write_number_with_format(i as u32, 4+2*(j as u16), current_value.get_profit_rate(initial_capital), &percent_format)?;
         }
-        println!();     
+        let (idx, max_val) = val_vec.iter().enumerate().fold((threshold.len() + 1, val_vec[threshold.len() + 1]), |(acc_id, acc_val), (id, &val)| if val > acc_val { (id, val)} else {(acc_id, acc_val)});
+        acc_win[idx] += 1;
+        worksheet.write_number(i as u32, 3+2*(threshold.len() as u16), idx as u16)?;
+        
+        i += 1;
     }
 
     // 최종 결과 출력
     let final_price = quotes.last().unwrap().close;
 
     let buy_and_hold_value = initial_qty * final_price + initial_cash;
-    print!("\t{:.2}\t{:.2}%\t",buy_and_hold_value, buy_and_hold_value.get_profit_rate(initial_capital));
+
+    worksheet.write_number(i as u32, 1, buy_and_hold_value)?;
+    worksheet.write_number_with_format(i as u32, 2, buy_and_hold_value.get_profit_rate(initial_capital), &percent_format)?;
         
-    for tester in backtester.iter_mut(){
+    for (j, tester) in backtester.iter_mut().enumerate(){
         tester.process_price(final_price);
         let current_value = tester.get_total_value(final_price);
-        print!("{:.2}\t{:.2}%\t", current_value, current_value.get_profit_rate(initial_capital));        
+
+        worksheet.write_number(i as u32, 3+2*(j as u16), current_value)?;
+        worksheet.write_number_with_format(i as u32, 4+2*(j as u16), current_value.get_profit_rate(initial_capital), &percent_format)?;
     }
-    println!();
+    i+= 1;
+    for idx in 0..threshold.len(){
+        worksheet.write_string(i as u32, 0, &format!("리밸런싱({}%) 자산", threshold[idx] * 100.0))?;        
+        worksheet.write_number(i as u32, 1, acc_win[idx])?;        
+        i += 1;
+    }
+    
+    worksheet.write_string(i as u32, 0, "단순보유")?;        
+    worksheet.write_number(i as u32, 1, acc_win[threshold.len()])?;        
+    i += 1;
+    
+    worksheet.write_string(i as u32, 0, "현금")?;        
+    worksheet.write_number(i as u32, 1, acc_win[threshold.len() + 1])?;        
+    
+    workbook.save("backtest_report.xlsx")?;
+
+    for idx in 0..threshold.len(){
+        println!("리밸런싱({})자산 : {}", threshold[idx] * 100.0, acc_win[idx]);
+    }
+    println!("단순보유 : {}", acc_win[threshold.len()]);
+    println!("현금 : {}", acc_win[threshold.len()+1]);
+    
+    
     Ok(())
 
 }

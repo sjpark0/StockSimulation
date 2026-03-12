@@ -7,3 +7,5 @@ edition = "2024"
 tokio = { version = "1.0", features = ["full"] }
 yahoo_finance_api = "2.0"
 time = "0.3"
+rust_xlsxwriter = "0.74"
+rand = "0.7.0"
