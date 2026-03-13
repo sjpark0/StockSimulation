@@ -2,7 +2,6 @@ use yahoo_finance_api as yahoo;
 use time::{OffsetDateTime, Duration};
 use tokio;
 use rand::Rng;
-use std::cmp::Ordering;
 use rust_xlsxwriter::{Format, FormatAlign, Workbook};
 
 struct Portfolio{
