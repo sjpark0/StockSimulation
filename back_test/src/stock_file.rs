@@ -7,7 +7,6 @@ pub fn load_excel_file(file_name : &str) -> Vec<f64>{
     let sheet = book.get_sheet_mut(&0).unwrap();
     let highest_row = sheet.get_highest_row();
 
-    let mut prev_price: Option<f64> = None;
     let mut res = Vec::new();
     for row in 3..=highest_row {
         let price_str = sheet.get_value((2, row));

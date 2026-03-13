@@ -54,8 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = yahoo::YahooConnector::new()?;
 
     let end = OffsetDateTime::now_utc();
-    let start = end - Duration::days(rand::thread_rng().gen_range(1, 4000));
-
+    //let start = end - Duration::days(rand::thread_rng().gen_range(1, 4000));
+    let start = end - Duration::days(1000000);
     // BTC-USD(비트코인)의 1일봉(1d) 데이터를 메모리로 직접 가져옴
     let response = provider.get_quote_history("SOXL", start, end).await?;
     let quotes = response.quotes()?;
