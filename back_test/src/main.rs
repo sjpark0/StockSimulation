@@ -1,6 +1,8 @@
 use umya_spreadsheet::*;
 use std::path::Path;
 use std::env;
+mod stock_file;
+/*
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let file_name = format!("{}.xlsx", args[1]);
@@ -37,4 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     writer::xlsx::write(&book, file_path)?;
 
     Ok(())
+}
+*/
+fn main(){
+    let args: Vec<String> = env::args().collect();
+    let file_name = format!("{}.xlsx", args[1]);
+    let prices = stock_file::load_excel_file(&file_name);
+    for p in &prices{
+        println!("{}", p);
+    }
 }
