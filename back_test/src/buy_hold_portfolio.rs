@@ -20,19 +20,6 @@ impl Backtester for BuyHoldPortfolio{
         self.process_price(price_history[start]);
         self.get_total_rate(price_history[end])
     }
-    fn rolling_return(&mut self, price_history : &[f64], duration : usize) -> Vec<Option<f64>>{
-        let mut res_vec: Vec<Option<f64>> = Vec::new();        
-        for i in 0..price_history.len(){
-            if i < duration{
-                res_vec.push(None);
-            }
-            else{
-                let (cap, _) = self.process_backtester(price_history, i - duration, i);
-                res_vec.push(Some(cap));
-            }
-        }
-        res_vec
-    }
     
     fn initial_investment(&mut self){
         self.cash = self.initial_capital;
