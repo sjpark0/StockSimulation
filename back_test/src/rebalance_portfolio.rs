@@ -1,56 +1,110 @@
 use crate::backtester::Backtester;
+use crate::types::Assets;
+use std::collections::HashMap;
 
 pub struct RebalancePortfolio{
     initial_capital : f64,
-    cash: f64,
-    stock_qty: u32,
-    pub diff_ratio: f64,
-    stock_ratio : f64,
+    assets : Assets,
     fee_rate : f64,
+    pub threshold: f64,    
 }
 
 impl RebalancePortfolio{    
-    pub fn new(initial_capital: f64, diff_ratio: f64, stock_ratio: f64, fee_rate: f64) -> Self{
-        Self { initial_capital : initial_capital, cash : initial_capital, stock_qty : 0, diff_ratio : diff_ratio, stock_ratio : stock_ratio, fee_rate : fee_rate}
+    pub fn new(initial_capital: f64, tickers_fraction : &[(String, f64)], fee_rate : f64, threshold: f64) -> Self{
+        let mut assets = Assets(HashMap::new());
+        let mut fractions = 1.0;
+        for (t, f) in tickers_fraction.iter(){
+            assets.insert(t.to_string(), (0.0, *f));
+            fractions -= *f;
+        }
+        assets.insert("CASH".to_string(), (0.0, fractions));
+        Self { initial_capital : initial_capital, assets : assets, fee_rate : fee_rate, threshold : threshold}
+
     }
-    fn rebalance(&mut self, current_price: f64, total_value: f64){
-        let tmp_stock_value = total_value * self.stock_ratio;
-        let tmp_qty = (tmp_stock_value / current_price).floor() as u32;
-        let fee = ((self.stock_qty as f64) - (tmp_qty as f64)).abs() * self.fee_rate * 0.01;
-        self.stock_qty = tmp_qty;
-        self.cash = total_value - (self.stock_qty as f64) * current_price - fee;
+    fn rebalance(&mut self, current_prices: &[(String, f64)], total_value: f64){
+
+        let mut total_stock_value = 0.0;
+        for (t, p) in current_prices.iter(){
+            if let Some((qty, f)) = self.assets.get_mut(t){
+                let pre_qty = *qty;
+                *qty = (total_value * *f / p).floor();
+                let fee = (*qty - pre_qty).abs() * self.fee_rate * 0.01;
+                total_stock_value += *qty * p - fee;
+            }
+        }
+        if let Some((val, f)) = self.assets.get_mut("CASH"){
+            *val = total_value - total_stock_value;
+        }
     }    
 }
 
 impl Backtester for RebalancePortfolio{
-    fn process_backtester(&mut self, price_history : &[f64], start : usize, end : usize) -> (f64, f64){
+    fn process_backtester(&mut self, price_histories : &HashMap<String, Vec::<f64>>, start : usize, end : usize) -> (f64, f64){
         self.initial_investment();
+        let mut current_prices = vec![("".to_string(), 0.0);price_histories.len()];
+
         for i in start..=end{
-            self.process_price(price_history[i]);
+            for (id, (k, v)) in price_histories.iter().enumerate(){
+                current_prices[id] = (k.to_string(), v[i]);
+            }            
+            self.process_price(&current_prices);
         }
-        self.get_total_rate(price_history[end])
+
+        for (id, (k, v)) in price_histories.iter().enumerate(){
+            current_prices[id] = (k.to_string(), v[end]);
+        }            
+        self.get_total_rate(&current_prices)
     }
         
     fn initial_investment(&mut self){
-        self.cash = self.initial_capital;
-        self.stock_qty = 0;
-    }
-    fn process_price(&mut self, current_price: f64){
-        let stock_value = (self.stock_qty as f64) * current_price;
-        let total_value = stock_value + self.cash;
-
-        let stock_weight = stock_value / total_value;
-        let cash_weight = self.cash / total_value;
-
-        if(stock_weight - cash_weight).abs() >= self.diff_ratio{
-            self.rebalance(current_price, total_value);
+        for (val1, _) in self.assets.values_mut(){
+            *val1 = 0.0;            
+        }        
+        if let Some((val, _)) = self.assets.get_mut("CASH"){
+            *val = self.initial_capital;
         }
     }
+    fn process_price(&mut self, current_prices: &[(String, f64)]){
+        let mut total_val = 0.0;
+        let mut current_val = Vec::new();
+        for (t, p) in current_prices.iter(){
+            if let Some((qty, _)) = self.assets.get(t){
+                current_val.push(*qty * p);
+                total_val += *qty * p;
+            }
+        }
+        if let Some((val, _)) = self.assets.get("CASH"){
+            current_val.push(*val);
+            total_val += *val;
+        }
+        let mut total_ratio = 0.0;
+        for (t, p) in current_prices.iter(){
+            if let Some((qty, fration)) = self.assets.get(t){
+                total_ratio += (*qty * p / total_val - fration).abs();
+            }
+        }
+        if let Some((val, fration)) = self.assets.get("CASH"){
+            total_ratio += (*val / total_val - fration).abs();
+        }
+        
+        if total_ratio > self.threshold{
+            self.rebalance(current_prices, total_val);
+        }
+
+    }
     
-    fn get_total_rate(&self, current_price: f64) -> (f64, f64) {
-        let total_val = self.cash + (self.stock_qty as f64) * current_price;
-        let profit = total_val / self.initial_capital;
-        (total_val, profit)
+    fn get_total_rate(&self, current_prices : &[(String, f64)]) -> (f64, f64) {
+        let mut total_val = 0.0;
+
+        for (t, p) in current_prices.iter(){
+            if let Some((qty, _)) = self.assets.get(t){
+                total_val += *qty * p;
+            }
+        }
+        if let Some((val, _)) = self.assets.get("CASH"){
+            total_val += *val;
+        }
+
+        (total_val, total_val / self.initial_capital)
     }
 }
-
