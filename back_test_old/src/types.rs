@@ -3,11 +3,6 @@ use std::collections::VecDeque;
 pub struct CapitalReturns(pub Vec<Option<f64>>);
 pub struct PortfolidIndices(pub Vec<usize>);
 
-enum Asset{
-    CASH,
-    STOCK(String, u32, f64),
-}
-
 impl Deref for CapitalReturns {
     type Target = Vec<Option<f64>>;
 

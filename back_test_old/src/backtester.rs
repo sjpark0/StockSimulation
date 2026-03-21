@@ -1,9 +1,10 @@
 use crate::types::CapitalReturns;
+use std::time::Instant;
 
 
 pub trait Backtester{    
     fn process_backtester(&mut self, price_history : &[f64], start : usize, end : usize) -> (f64, f64);
-    fn rolling_return(&mut self, price_history : &[f64], duration : usize) -> CapitalReturns{
+    fn rolling_return(&mut self, price_history : &[f64], duration : usize) -> CapitalReturns{        
         let mut res_vec: CapitalReturns = CapitalReturns(Vec::new());        
         for i in 0..price_history.len(){
             if i < duration{

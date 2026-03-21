@@ -11,6 +11,7 @@ use backtester::Backtester;
 use rebalance_portfolio::RebalancePortfolio;
 use buy_hold_portfolio::BuyHoldPortfolio;
 use types::{CapitalReturns, PortfolidIndices};
+use std::time::Instant;
 
 fn analyze(capital_profit_vec : &[Option<f64>], initial_price : f64) -> (f64, f64, u32, f64){
     let valid_capital_profit_vec : Vec<f64> = capital_profit_vec.iter().filter(|&x| x.is_some()).map(|y| y.unwrap()).collect();
@@ -22,6 +23,8 @@ fn analyze(capital_profit_vec : &[Option<f64>], initial_price : f64) -> (f64, f6
 }
 
 fn main(){
+    let start = Instant::now();
+
     let args: Vec<String> = env::args().collect();
     let file_name = format!("{}.xlsx", args[1]);
     let mut file = StockFile::new(&file_name);
@@ -30,7 +33,7 @@ fn main(){
     let initial_capital = 100_000.0;
     let threshold = vec![0.1, 0.2, 0.3];
     let vec_duration: Vec<usize> = vec![250, 500];
-
+    
     let mut portfolio_vec :Vec<RebalancePortfolio> = threshold.iter().map(|x| RebalancePortfolio::new(initial_capital, *x, 0.5, fee_rate)).collect();
     let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
@@ -45,13 +48,12 @@ fn main(){
             let cap = tmp_rolling[max_id].unwrap();
             let cap_min = tmp_rolling[min_id].unwrap();
             
-            let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-            let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-            let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
+            //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
+            //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
+            //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
             
-        
-            file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
-            cnt_strategy += 4;
+            //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
+            //cnt_strategy += 4;
             
             println!("리밸런싱({}), 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, 전고점대비 = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, 전고점대비 = {:.2}, 시작날짜 = {}", p.diff_ratio, duration, avg / initial_capital, perc, cap / initial_capital, prices[max_id - *duration] / prev_maximum[max_id - *duration], date_vec[max_id - *duration], cap_min / initial_capital, prices[min_id - *duration] / prev_maximum[min_id - *duration], date_vec[min_id - *duration]);
         }
@@ -69,15 +71,17 @@ fn main(){
                 
         let c = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
-        let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
+        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
+        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
+        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
 
-        file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
-        cnt_strategy += 4;
+        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
+        //cnt_strategy += 4;
                
         println!("보유, 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, 전고점대비 = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, 전고점대비 = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, c / initial_capital, prices[max_id - *duration] / prev_maximum[max_id - *duration], date_vec[max_id - *duration], cap_min / initial_capital, prices[min_id - *duration] / prev_maximum[min_id - *duration], date_vec[min_id - *duration]);
     }
-    file.write_xlsx();
+    //file.write_xlsx();
+    let duration = start.elapsed();
+    println!("실행 시간: {:.6}초 ({}ms)", duration.as_secs_f64(), duration.as_millis());
     
 }

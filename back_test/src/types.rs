@@ -6,7 +6,9 @@ pub struct CapitalReturns(pub Vec<Option<f64>>);
 pub struct PortfolidIndices(pub Vec<usize>);
 
 #[derive(Debug)]
-pub struct Assets(pub HashMap<String, (f64, f64)>);
+pub struct Assets(pub Vec<(f64, f64)>);
+
+pub struct Assets_Hashmap(pub HashMap<String, (f64, f64)>);
 
 impl Deref for CapitalReturns {
     type Target = Vec<Option<f64>>;
@@ -37,7 +39,7 @@ impl DerefMut for PortfolidIndices {
 }
 
 impl Deref for Assets {
-    type Target = HashMap<String, (f64, f64)>;
+    type Target = Vec<(f64, f64)>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -45,6 +47,20 @@ impl Deref for Assets {
 }
 
 impl DerefMut for Assets {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Deref for Assets_Hashmap {
+    type Target = HashMap<String, (f64, f64)>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Assets_Hashmap {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
