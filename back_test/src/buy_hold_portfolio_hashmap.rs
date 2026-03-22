@@ -1,3 +1,5 @@
+use umya_spreadsheet::helper::date;
+
 use crate::backtester::Backtester;
 use crate::types::{Assets_Hashmap, CapitalReturns};
 use std::collections::HashMap;
@@ -20,12 +22,12 @@ impl BuyHoldPortfolioHashmap{
         assets.insert("CASH".to_string(), (0.0, fractions));
         Self { initial_capital : initial_capital, assets : assets, fee_rate : fee_rate, price_histories : price_histories}
     }
-    fn process_price(&mut self, current_prices: &[(String, f64)]){
+    fn process_price(&mut self, date_idx : usize){
         let mut total_stock = 0.0;
-        for (t, p) in current_prices.iter(){
+        for (t, p) in self.price_histories.iter(){
             if let Some((qty, f)) = self.assets.get_mut(t){
-                *qty = (self.initial_capital * *f / p).floor();
-                total_stock += *qty * p;
+                *qty = (self.initial_capital * *f / p[date_idx]).floor();
+                total_stock += *qty * p[date_idx];
             }
         }
         if let Some((val, f)) = self.assets.get_mut("CASH"){
@@ -33,52 +35,30 @@ impl BuyHoldPortfolioHashmap{
         }
     }
     
-    fn get_total_rate(&self, current_prices : &[(String, f64)]) -> (f64, f64) {
-        let mut total_val = 0.0;
-
-        for (t, p) in current_prices.iter(){
-            if let Some((qty, _)) = self.assets.get(t){
-                total_val += *qty * p;
-            }
-        }
-        if let Some((val, _)) = self.assets.get("CASH"){
-            total_val += *val;
-        }
-
-        (total_val, total_val / self.initial_capital)
+    fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
+        let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[date_idx]);
+        (total_val, total_val / self.initial_capital)                
     }    
 }
 
 impl Backtester for BuyHoldPortfolioHashmap{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
-        let mut res_vec: CapitalReturns = CapitalReturns(Vec::new());        
-        for i in 0..self.price_histories.values().next().unwrap_or(&Vec::new()).len(){
-            if i < duration{
-                res_vec.push(None);
-            }
-            else{
-                let (cap, _) = self.process_backtester(i - duration, i);
-                res_vec.push(Some(cap));
-            }
-        }
-        res_vec
+        let length = self.price_histories.values().next().unwrap_or(&Vec::new()).len();
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
     }
 
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
         self.initial_investment();
-        let mut start_prices = Vec::new();
-        let mut end_prices = Vec::new();
-        for (k, v) in self.price_histories.iter(){
-            start_prices.push((k.to_string(), v[start]));
-            end_prices.push((k.to_string(), v[end]));
-        }
-        self.process_price(&start_prices);
-        self.get_total_rate(&end_prices)
+        self.process_price(start);
+        self.get_total_rate(end)
     }
     
     fn initial_investment(&mut self){
         for (val1, _) in self.assets.values_mut(){
             *val1 = 0.0;            
         }        
-    }
+        if let Some((val, _)) = self.assets.get_mut("CASH"){
+           *val = self.initial_capital;
+        }
+    }    
 }

@@ -32,10 +32,7 @@ impl RebalancePortfolio{
 
         let stock_weight = stock_value / total_value;
         let cash_weight = self.cash / total_value;
-
-        //let duration = start_time.elapsed();
-        //println!("process price : 실행 시간: {:.6}초 ({}ms, {}ns)", duration.as_secs_f64(), duration.as_millis(), duration.as_nanos());
-
+        
         if(stock_weight - cash_weight).abs() >= self.threshold{
             self.rebalance(current_price, total_value);
         }
@@ -52,25 +49,14 @@ impl RebalancePortfolio{
 
 impl Backtester for RebalancePortfolio{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{
-        let mut res_vec: CapitalReturns = CapitalReturns(Vec::new());        
-        for i in 0..self.price_history.len(){
-            if i < duration{
-                res_vec.push(None);
-            }
-            else{
-                let (cap, _) = self.process_backtester(i - duration, i);
-                res_vec.push(Some(cap));
-            }
-        }
-        res_vec
+        let length = self.price_history.len();
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
     }
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
-        self.initial_investment();
-        
+        self.initial_investment();        
         for i in start..=end{
             self.process_price(self.price_history[i]);
         }
-
         self.get_total_rate(self.price_history[end])
     }
         

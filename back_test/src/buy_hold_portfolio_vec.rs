@@ -30,18 +30,8 @@ impl BuyHoldPortfolioVec{
 
 impl Backtester for BuyHoldPortfolioVec{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{
-        let mut res_vec: CapitalReturns = CapitalReturns(Vec::new());        
-        
-        for i in 0..self.price_history.len(){
-            if i < duration{
-                res_vec.push(None);
-            }
-            else{
-                let (cap, _) = self.process_backtester(i - duration, i);
-                res_vec.push(Some(cap));
-            }
-        }
-        res_vec
+        let length = self.price_history.len();
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
     }
     
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){

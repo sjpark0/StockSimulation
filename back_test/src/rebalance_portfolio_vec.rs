@@ -28,7 +28,7 @@ impl RebalancePortfolioVec{
         let fee = (self.assets[0].0 - pre_qty).abs() * self.fee_rate * 0.01;
         self.assets[1].0 = total_value - self.assets[0].0 * current_price - fee;                
     }    
-        fn process_price(&mut self, current_price: f64){
+    fn process_price(&mut self, current_price: f64){
         let qty = self.assets[0].0;
         let cash = self.assets[1].0;
         let stock_value = qty * current_price;
@@ -54,18 +54,8 @@ impl RebalancePortfolioVec{
 
 impl Backtester for RebalancePortfolioVec{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{
-        let mut res_vec: CapitalReturns = CapitalReturns(Vec::new());        
-        
-        for i in 0..self.price_history.len(){
-            if i < duration{
-                res_vec.push(None);
-            }
-            else{
-                let (cap, _) = self.process_backtester(i - duration, i);
-                res_vec.push(Some(cap));
-            }
-        }
-        res_vec
+        let length = self.price_history.len();
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
     }
     
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
