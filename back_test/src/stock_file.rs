@@ -1,7 +1,9 @@
+
 use umya_spreadsheet::*;
 use umya_spreadsheet::helper::coordinate::coordinate_from_index;
 
 use std::path::Path;
+use crate::types::StockPrices;
 
 pub struct StockFile{
     book : Spreadsheet,
@@ -13,11 +15,11 @@ impl StockFile{
         let file_path = Path::new(&file_name);
         Self{ book : reader::xlsx::read(file_path).unwrap(),  file_path : file_name.to_string()}    
     }
-    pub fn load(&mut self, sheet_idx : usize) -> (Vec<String>, Vec<f64>, Vec<f64>){
+    pub fn load(&mut self, sheet_idx : usize) -> (Vec<String>, StockPrices, Vec<f64>){
         let sheet = self.book.get_sheet_mut(&sheet_idx).unwrap();
         let highest_row = sheet.get_highest_row();
 
-        let mut res_price = Vec::new();
+        let mut res_price = StockPrices(Vec::new());
         let mut res_date = Vec::new();
         let mut res_pre_maximum = Vec::new();
         for row in 3..=highest_row {

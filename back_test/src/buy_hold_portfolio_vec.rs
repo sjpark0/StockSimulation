@@ -1,15 +1,15 @@
 use crate::backtester::Backtester;
-use crate::types::{Assets, CapitalReturns};
+use crate::types::{Assets, CapitalReturns, StockPrices};
 
 pub struct BuyHoldPortfolioVec{
     initial_capital : f64,
     assets : Assets,
     fee_rate : f64,
-    price_history : Vec<f64>,
+    price_history : StockPrices,
 }
 
 impl BuyHoldPortfolioVec{    
-    pub fn new(initial_capital: f64, fee_rate: f64, price_history : Vec<f64>) -> Self{
+    pub fn new(initial_capital: f64, fee_rate: f64, price_history : StockPrices) -> Self{
         let mut assets = Assets(Vec::new());
         assets.push((0.0, 1.0));
         assets.push((0.0, 0.0));

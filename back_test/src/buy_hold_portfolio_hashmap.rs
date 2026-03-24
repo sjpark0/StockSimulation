@@ -1,18 +1,16 @@
-use umya_spreadsheet::helper::date;
-
 use crate::backtester::Backtester;
-use crate::types::{Assets_Hashmap, CapitalReturns};
+use crate::types::{Assets_Hashmap, CapitalReturns, StockPrices};
 use std::collections::HashMap;
 
 pub struct BuyHoldPortfolioHashmap{
     initial_capital : f64,
     assets : Assets_Hashmap,
     fee_rate : f64,
-    price_histories : HashMap<String, Vec::<f64>>,
+    price_histories : HashMap<String, StockPrices>,
 }
 
 impl BuyHoldPortfolioHashmap{    
-    pub fn new(initial_capital: f64, fee_rate: f64, tickers_fraction : &[(String, f64)], price_histories : HashMap<String, Vec::<f64>>) -> Self{
+    pub fn new(initial_capital: f64, fee_rate: f64, tickers_fraction : &[(String, f64)], price_histories : HashMap<String, StockPrices>) -> Self{
         let mut assets = Assets_Hashmap(HashMap::new());
         let mut fractions = 1.0;
         for (t, f) in tickers_fraction.iter(){
@@ -43,7 +41,7 @@ impl BuyHoldPortfolioHashmap{
 
 impl Backtester for BuyHoldPortfolioHashmap{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
-        let length = self.price_histories.values().next().unwrap_or(&Vec::new()).len();
+        let length = self.price_histories.values().next().unwrap_or(&StockPrices(Vec::new())).len();
         CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
     }
 

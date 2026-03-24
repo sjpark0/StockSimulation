@@ -1,16 +1,18 @@
-use crate::backtester::Backtester;
-use crate::types::{Assets, CapitalReturns, StockPrices};
+use umya_spreadsheet::helper::date;
 
-pub struct RebalancePortfolioVec2{
+use crate::backtester::Backtester;
+use crate::types::{Assets, CapitalReturns, StockPrices, BollingerBand};
+
+pub struct RebalancePortfolioVecBollinger{
     initial_capital : f64,
     assets : Assets,
     fee_rate : f64,
-    pub threshold: f64,    
     price_histories : Vec<StockPrices>,
+    bollingerband_histories : Vec<BollingerBand>,
 }
 
-impl RebalancePortfolioVec2{    
-    pub fn new(initial_capital: f64, tickers_fraction : &[f64], fee_rate : f64, threshold: f64, price_histories : Vec<StockPrices>) -> Self{
+impl RebalancePortfolioVecBollinger{    
+    pub fn new(initial_capital: f64, tickers_fraction : &[f64], fee_rate : f64, price_histories : Vec<StockPrices>, bollinger_badns : Vec<BollingerBand>) -> Self{
         let mut assets = Assets(Vec::new());
         let mut fractions = 1.0;
         for f in tickers_fraction.iter(){
@@ -18,7 +20,7 @@ impl RebalancePortfolioVec2{
             fractions -= *f;
         }
         assets.push((0.0, fractions));
-        Self { initial_capital : initial_capital, assets : assets, fee_rate : fee_rate, threshold : threshold, price_histories : price_histories}
+        Self { initial_capital : initial_capital, assets : assets, fee_rate : fee_rate, price_histories : price_histories, bollingerband_histories : bollinger_badns}
 
     }
     fn rebalance(&mut self, date_idx : usize, total_value: f64){
@@ -34,11 +36,10 @@ impl RebalancePortfolioVec2{
     }
     fn process_price(&mut self, date_idx : usize){
         let length = self.price_histories.len();
-        let total_val = (0..length).fold(self.assets[length].0, |acc: f64, idx| acc + self.assets[idx].0 * self.price_histories[idx][date_idx]);        
-        let total_ratio = (0..length).fold((self.assets[length].0 / total_val - self.assets[length].1).abs(), |acc, idx| acc + (self.assets[idx].0 * self.price_histories[idx][date_idx] / total_val - self.assets[idx].1).abs());        
-        if total_ratio >= self.threshold{
+        let total_val = (0..length).fold(self.assets[length].0, |acc: f64, idx| acc + self.assets[idx].0 * self.price_histories[idx][date_idx]);    
+        if (0..length).fold(false, |acc, idx| acc | (self.price_histories[idx].is_not_range(&self.bollingerband_histories[idx], date_idx))){
             self.rebalance(date_idx, total_val);
-        }
+        }            
     }
     
     fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
@@ -49,7 +50,7 @@ impl RebalancePortfolioVec2{
     
 }
 
-impl Backtester for RebalancePortfolioVec2{
+impl Backtester for RebalancePortfolioVecBollinger{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
         let length = self.price_histories[0].len();
         CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            

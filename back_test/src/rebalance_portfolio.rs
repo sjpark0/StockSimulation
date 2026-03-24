@@ -1,5 +1,5 @@
 use crate::backtester::Backtester;
-use crate::types::CapitalReturns;
+use crate::types::{CapitalReturns, StockPrices};
 use std::time::Instant;
 
 pub struct RebalancePortfolio{
@@ -9,11 +9,11 @@ pub struct RebalancePortfolio{
     pub threshold: f64,
     stock_ratio : f64,
     fee_rate : f64,
-    price_history : Vec<f64>,
+    price_history : StockPrices,
 }
 
 impl RebalancePortfolio{    
-    pub fn new(initial_capital: f64, threshold: f64, stock_ratio: f64, fee_rate: f64, price_history : Vec<f64>) -> Self{
+    pub fn new(initial_capital: f64, threshold: f64, stock_ratio: f64, fee_rate: f64, price_history : StockPrices) -> Self{
         Self { initial_capital : initial_capital, cash : initial_capital, stock_qty : 0, threshold : threshold, stock_ratio : stock_ratio, fee_rate : fee_rate, price_history : price_history}
     }
     fn rebalance(&mut self, current_price: f64, total_value: f64){

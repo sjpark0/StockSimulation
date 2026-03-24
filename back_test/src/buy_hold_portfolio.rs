@@ -1,16 +1,16 @@
 use crate::backtester::Backtester;
-use crate::types::CapitalReturns;
+use crate::types::{CapitalReturns, StockPrices};
 
 pub struct BuyHoldPortfolio{
     initial_capital : f64,
     fee_rate : f64,
     cash: f64,
     stock_qty: u32,    
-    price_history : Vec<f64>,
+    price_history : StockPrices,
 }
 
 impl BuyHoldPortfolio{    
-    pub fn new(initial_capital: f64, fee_rate: f64, price_history : Vec<f64>) -> Self{
+    pub fn new(initial_capital: f64, fee_rate: f64, price_history : StockPrices) -> Self{
         Self { initial_capital : initial_capital, cash : initial_capital, stock_qty : 0, fee_rate : fee_rate, price_history : price_history}
     }
         fn process_price(&mut self, current_price: f64){
