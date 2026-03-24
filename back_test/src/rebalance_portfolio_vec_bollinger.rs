@@ -34,18 +34,14 @@ impl RebalancePortfolioVecBollinger{
         }
         self.assets[length].0 = total_value - total_stock_value;        
     }
-    fn process_price(&mut self, date_idx : usize){
+    fn process_price(&mut self, date_idx : usize) -> f64{
         let length = self.price_histories.len();
         let total_val = (0..length).fold(self.assets[length].0, |acc: f64, idx| acc + self.assets[idx].0 * self.price_histories[idx][date_idx]);    
+        
         if (0..length).fold(false, |acc, idx| acc | (self.price_histories[idx].is_not_range(&self.bollingerband_histories[idx], date_idx))){
             self.rebalance(date_idx, total_val);
         }            
-    }
-    
-    fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
-        let length = self.price_histories.len();
-        let total_val = (0..length).fold(self.assets[length].0, |acc: f64, idx| acc + self.assets[idx].0 * self.price_histories[idx][date_idx]);                
-        (total_val, total_val / self.initial_capital)
+        total_val
     }
     
 }
@@ -53,15 +49,24 @@ impl RebalancePortfolioVecBollinger{
 impl Backtester for RebalancePortfolioVecBollinger{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
         let length = self.price_histories[0].len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
 
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+        let mut total_val = 0.0;
+
         self.initial_investment();
         for i in start..=end{
-            self.process_price(i);
+            total_val = self.process_price(i);
+            local_maximum = total_val.max(local_maximum);
+            mdd = mdd.max(1.0 - total_val / local_maximum);         
         }
-        self.get_total_rate(end)
+
+        let length = self.price_histories.len();
+        total_val = (0..length).fold(self.assets[length].0, |acc: f64, idx| acc + self.assets[idx].0 * self.price_histories[idx][end]);                
+        (total_val, mdd)
     }
         
     fn initial_investment(&mut self){

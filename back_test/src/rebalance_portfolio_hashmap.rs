@@ -36,7 +36,7 @@ impl RebalancePortfolioHashmap{
             *val = total_value - total_stock_value;
         }
     }
-    fn process_price(&mut self, date_idx : usize){        
+    fn process_price(&mut self, date_idx : usize) -> f64{        
         let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[date_idx]);        
         let total_ratio = self.price_histories.iter().fold(
             { 
@@ -46,32 +46,37 @@ impl RebalancePortfolioHashmap{
             |acc: f64, (ticker, p)| {
                 let current_val = self.assets.get(ticker).unwrap();
                 acc + (current_val.0 * p[date_idx] / total_val - current_val.1).abs() 
-            });                
+            });                        
         
         if total_ratio >= self.threshold{
             self.rebalance(date_idx, total_val);
         }
+        total_val
     }
     
-    fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
-        let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[date_idx]);
-        (total_val, total_val / self.initial_capital)                
-    }
     
 }
 
 impl Backtester for RebalancePortfolioHashmap{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
         let length = self.price_histories.values().next().unwrap_or(&StockPrices(Vec::new())).len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
 
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+        let mut total_val = 0.0;
         self.initial_investment();
         for i in start..=end{
-            self.process_price(i);
+            total_val = self.process_price(i);
+            local_maximum = total_val.max(local_maximum);
+            mdd = mdd.max(1.0 - total_val / local_maximum);         
         }
-        self.get_total_rate(end)
+        
+        total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[end]);
+        (total_val, mdd)
+        
     }
         
     fn initial_investment(&mut self){

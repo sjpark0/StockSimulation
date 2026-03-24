@@ -33,22 +33,28 @@ impl BuyHoldPortfolioHashmap{
         }
     }
     
-    fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
-        let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[date_idx]);
-        (total_val, total_val / self.initial_capital)                
-    }    
 }
 
 impl Backtester for BuyHoldPortfolioHashmap{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
         let length = self.price_histories.values().next().unwrap_or(&StockPrices(Vec::new())).len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
 
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+
         self.initial_investment();
         self.process_price(start);
-        self.get_total_rate(end)
+        for i in start..end{
+            let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[i]);
+            local_maximum = local_maximum.max(total_val);
+            mdd = mdd.max(1.0 - total_val / local_maximum);        
+        }
+        let total_val = self.price_histories.iter().fold(self.assets.get("CASH").unwrap().0, |acc: f64, (ticker, p)| acc + self.assets.get(ticker).unwrap().0 * p[end]);
+            
+        (total_val, mdd)
     }
     
     fn initial_investment(&mut self){

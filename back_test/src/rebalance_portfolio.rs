@@ -24,7 +24,7 @@ impl RebalancePortfolio{
         self.cash = total_value - (self.stock_qty as f64) * current_price - fee;
         
     }    
-        fn process_price(&mut self, current_price: f64){
+    fn process_price(&mut self, current_price: f64) -> f64{
         //let start_time = Instant::now();
 
         let stock_value = (self.stock_qty as f64) * current_price;
@@ -32,32 +32,35 @@ impl RebalancePortfolio{
 
         let stock_weight = stock_value / total_value;
         let cash_weight = self.cash / total_value;
-        
+
         if(stock_weight - cash_weight).abs() >= self.threshold{
             self.rebalance(current_price, total_value);
         }
-
+        total_value
     }
     
-    fn get_total_rate(&self, current_price: f64) -> (f64, f64) {
-        let total_val = self.cash + (self.stock_qty as f64) * current_price;
-        let profit = total_val / self.initial_capital;
-        (total_val, profit)
-    }
 
 }
 
 impl Backtester for RebalancePortfolio{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{
         let length = self.price_history.len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+        let mut total_val = 0.0;
+
         self.initial_investment();        
         for i in start..=end{
-            self.process_price(self.price_history[i]);
+            total_val = self.process_price(self.price_history[i]);
+            local_maximum = total_val.max(local_maximum);
+            mdd = mdd.max(1.0 - total_val / local_maximum);         
+
         }
-        self.get_total_rate(self.price_history[end])
+        total_val = self.cash + (self.stock_qty as f64) * self.price_history[end];
+        (total_val, mdd)
     }
         
     fn initial_investment(&mut self){

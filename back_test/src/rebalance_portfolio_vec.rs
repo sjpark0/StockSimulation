@@ -28,7 +28,7 @@ impl RebalancePortfolioVec{
         let fee = (self.assets[0].0 - pre_qty).abs() * self.fee_rate * 0.01;
         self.assets[1].0 = total_value - self.assets[0].0 * current_price - fee;                
     }    
-    fn process_price(&mut self, current_price: f64){
+    fn process_price(&mut self, current_price: f64) -> f64{
         let qty = self.assets[0].0;
         let cash = self.assets[1].0;
         let stock_value = qty * current_price;
@@ -37,34 +37,39 @@ impl RebalancePortfolioVec{
         let stock_weight = stock_value / total_val;
         let cash_weight = cash / total_val;
         let total_ratio = (stock_weight - self.assets[0].1).abs() + (cash_weight - self.assets[1].1).abs();
-        
+                
         if total_ratio >= self.threshold{
         //if(stock_weight - cash_weight).abs() >= self.threshold{
             self.rebalance(current_price, total_val);
         }
+        total_val
 
     }
-    
-    fn get_total_rate(&self, current_price : f64) -> (f64, f64) {
-        let total_val = self.assets[1].0 + self.assets[0].0 * current_price;
-        (total_val, total_val / self.initial_capital)
-    }
+
 
 }
 
 impl Backtester for RebalancePortfolioVec{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{
         let length = self.price_history.len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
     
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+        let mut total_val = 0.0;
+
         self.initial_investment();
         for i in start..=end{
-            self.process_price(self.price_history[i]);
+            total_val = self.process_price(self.price_history[i]);
+            local_maximum = total_val.max(local_maximum);
+            mdd = mdd.max(1.0 - total_val / local_maximum);         
+
         }
         
-        self.get_total_rate(self.price_history[end])
+        total_val = self.assets[1].0 + self.assets[0].0 * self.price_history[end];
+        (total_val, mdd)
     }
         
     fn initial_investment(&mut self){

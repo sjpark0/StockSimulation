@@ -37,12 +37,22 @@ impl BuyHoldPortfolioVec2{
 impl Backtester for BuyHoldPortfolioVec2{
     fn rolling_return(&mut self, duration : usize) -> CapitalReturns{    
         let length = self.price_histories[0].len();
-        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx).0) }).collect())            
+        CapitalReturns((0..length).map(|idx| if idx < duration { None } else { Some(self.process_backtester(idx - duration, idx)) }).collect())            
     }
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
+        let mut local_maximum: f64 = 0.0;
+        let mut mdd: f64 = 0.0;
+
         self.initial_investment();        
         self.process_price(start);
-        self.get_total_rate(end)
+        
+        for i in start..end{
+            let total_val = self.price_histories.iter().enumerate().fold(self.assets.last().unwrap().0, |acc: f64, (idx, p)| acc + self.assets[idx].0 * p[i]);        
+            local_maximum = local_maximum.max(total_val);
+            mdd = mdd.max(1.0 - total_val / local_maximum);         
+        }
+        let total_val = self.price_histories.iter().enumerate().fold(self.assets.last().unwrap().0, |acc: f64, (idx, p)| acc + self.assets[idx].0 * p[end]);
+        (total_val, mdd)        
     }    
     fn initial_investment(&mut self){
         for (val1, _) in self.assets.iter_mut(){
