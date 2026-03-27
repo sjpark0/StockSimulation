@@ -1,27 +1,30 @@
 
 use umya_spreadsheet::*;
-use umya_spreadsheet::helper::coordinate::coordinate_from_index;
+//use umya_spreadsheet::helper::coordinate::coordinate_from_index;
 
 use std::path::Path;
 use crate::types::StockPrices;
 
 pub struct StockFile{
     book : Spreadsheet,
-    file_path : String,
+    //file_path : String,
 }
 
 impl StockFile{
     pub fn new(file_name : &str) -> Self{
         let file_path = Path::new(&file_name);
-        Self{ book : reader::xlsx::read(file_path).unwrap(),  file_path : file_name.to_string()}    
+        //Self{ book : reader::xlsx::read(file_path).unwrap(),  file_path : file_name.to_string()}    
+        Self{ book : reader::xlsx::read(file_path).unwrap()}    
+
     }
-    pub fn load(&mut self, sheet_idx : usize) -> (Vec<String>, StockPrices, Vec<f64>){
+    pub fn load(&mut self, sheet_idx : usize) -> (Vec<String>, StockPrices, Vec<f64>, Vec<f64>){
         let sheet = self.book.get_sheet_mut(&sheet_idx).unwrap();
         let highest_row = sheet.get_highest_row();
 
         let mut res_price = StockPrices(Vec::new());
         let mut res_date = Vec::new();
         let mut res_pre_maximum = Vec::new();
+        let mut res_pre_minimum = Vec::new();
         for row in 3..=highest_row {
             let date = sheet.get_value((1, row));
             let price_str = sheet.get_value((2, row));
@@ -35,12 +38,18 @@ impl StockFile{
                 else{
                     res_pre_maximum.push(current_price);
                 }
+                if let Some(val) = res_pre_minimum.last(){
+                    res_pre_minimum.push(current_price.min(*val));
+                }
+                else{
+                    res_pre_minimum.push(current_price);
+                }
             }        
         }
 
-        (res_date, res_price, res_pre_maximum)    
+        (res_date, res_price, res_pre_maximum, res_pre_minimum)    
     }
-    pub fn write_xlsx(&mut self){
+    /*pub fn write_xlsx(&mut self){
         let file_path = Path::new(&self.file_path);
         writer::xlsx::write(&self.book, &file_path).unwrap();
     }
@@ -107,5 +116,5 @@ impl StockFile{
         let sheet = self.book.get_sheet_mut(&sheet_idx).unwrap();
         let cell = sheet.get_cell_mut(coords);
         cell.set_value_number(number);        
-    }
+    }*/
 }

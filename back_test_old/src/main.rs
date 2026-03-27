@@ -10,7 +10,6 @@ use stock_file::StockFile;
 use backtester::Backtester;
 use rebalance_portfolio::RebalancePortfolio;
 use buy_hold_portfolio::BuyHoldPortfolio;
-use types::{CapitalReturns, PortfolidIndices};
 use std::time::Instant;
 
 fn analyze(capital_profit_vec : &[Option<f64>], initial_price : f64) -> (f64, f64, u32, f64){
@@ -35,7 +34,6 @@ fn main(){
     let vec_duration: Vec<usize> = vec![250, 500];
     
     let mut portfolio_vec :Vec<RebalancePortfolio> = threshold.iter().map(|x| RebalancePortfolio::new(initial_capital, *x, 0.5, fee_rate)).collect();
-    let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
         for duration in vec_duration.iter(){
             let tmp_rolling = p.rolling_return(&prices, *duration);

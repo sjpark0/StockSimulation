@@ -60,11 +60,11 @@ fn main_hashmap(){
     for i in 1..args.len(){
         files.push(StockFile::new(&format!("{}.xlsx", args[i])));        
     }
-    let (date_vec, prices, prev_maximum) = files[0].load(0);
+    let (date_vec, prices, prev_maximum, prev_minimum) = files[0].load(0);
     price_histories.insert(args[1].clone(), prices);
 
     for i in 2..args.len(){
-        let (_, price_vec, _) = files[i-1].load(0);
+        let (_, price_vec, _, _) = files[i-1].load(0);
         price_histories.insert(args[i].clone(), price_vec);
     }
     let fee_rate = 0.25;
@@ -79,7 +79,6 @@ fn main_hashmap(){
 
     let mut portfolio_vec :Vec<RebalancePortfolioHashmap> = threshold.iter().map(|x| RebalancePortfolioHashmap::new(initial_capital, &ticker_fraction, fee_rate, *x, price_histories.clone())).collect();
 
-    let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
         for duration in vec_duration.iter(){
             let tmp_rolling = p.rolling_return(*duration);
@@ -91,14 +90,6 @@ fn main_hashmap(){
             let min_id = min_indices[0];
             let cap = tmp_rolling[max_id].unwrap();
             let cap_min = tmp_rolling[min_id].unwrap();
-            
-            //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-            //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-            //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-            
-        
-            //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
-            //cnt_strategy += 4;
             
             println!("리밸런싱({}), 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", p.threshold, duration, avg / initial_capital, perc, cap.0 / initial_capital, cap.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
         }
@@ -121,13 +112,7 @@ fn main_hashmap(){
                 
         let c = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
-        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-
-        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
-        //cnt_strategy += 4;
-               
+        
         println!("보유, 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, c.0 / initial_capital, c.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
     }
     //file.write_xlsx();
@@ -144,11 +129,11 @@ fn main_vec2(){
     for i in 1..args.len(){
         files.push(StockFile::new(&format!("{}.xlsx", args[i])));        
     }
-    let (date_vec, prices, prev_maximum) = files[0].load(0);
+    let (date_vec, prices, prev_maximum, prev_minimum) = files[0].load(0);
     price_histories.push(prices);
 
     for i in 2..args.len(){
-        let (_, price_vec, _) = files[i-1].load(0);
+        let (_, price_vec, _, _) = files[i-1].load(0);
         price_histories.push(price_vec);
     }
     let fee_rate = 0.25;
@@ -157,13 +142,12 @@ fn main_vec2(){
     let vec_duration: Vec<usize> = vec![250, 500, 1000, 2000, 2500];
 
     let mut ticker_fraction = Vec::new();
-    for i in 1..args.len(){
+    for _ in 1..args.len(){
         ticker_fraction.push(1.0 / (args.len() as f64));
     }
 
     let mut portfolio_vec :Vec<RebalancePortfolioVec2> = threshold.iter().map(|x| RebalancePortfolioVec2::new(initial_capital, &ticker_fraction, fee_rate, *x, price_histories.clone())).collect();
 
-    let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
         for duration in vec_duration.iter(){
             let tmp_rolling = p.rolling_return(*duration);
@@ -176,20 +160,12 @@ fn main_vec2(){
             let cap = tmp_rolling[max_id].unwrap();
             let cap_min = tmp_rolling[min_id].unwrap();
             
-            //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-            //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-            //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-            
-        
-            //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
-            //cnt_strategy += 4;
-            
             println!("리밸런싱({}), 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", p.threshold, duration, avg / initial_capital, perc, cap.0 / initial_capital, cap.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
         }
     }
 
     let mut ticker_fraction = Vec::new();
-    for i in 1..args.len(){
+    for _ in 1..args.len(){
         ticker_fraction.push(1.0 / (args.len() as f64 - 1.0));
     }
 
@@ -205,13 +181,6 @@ fn main_vec2(){
                 
         let c = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
-        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-
-        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
-        //cnt_strategy += 4;
-               
         println!("보유, 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, c.0 / initial_capital, c.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
     }
     //file.write_xlsx();
@@ -232,11 +201,11 @@ fn main_bollinger(){
     for i in 1..args.len(){
         files.push(StockFile::new(&format!("{}.xlsx", args[i])));        
     }
-    let (date_vec, prices, prev_maximum) = files[0].load(0);
+    let (date_vec, prices, prev_maximum, prev_minimum) = files[0].load(0);
     bollinger_bands.push(prices.compute_bollinger_band(num_avg, sigma));    
     price_histories.push(prices);
     for i in 2..args.len(){
-        let (_, price_vec, _) = files[i-1].load(0);
+        let (_, price_vec, _, _) = files[i-1].load(0);
         bollinger_bands.push(price_vec.compute_bollinger_band(num_avg, sigma));
         price_histories.push(price_vec);
     }
@@ -245,13 +214,12 @@ fn main_bollinger(){
     let vec_duration: Vec<usize> = vec![250, 500, 1000, 2000, 2500];
 
     let mut ticker_fraction = Vec::new();
-    for i in 1..args.len(){
+    for _ in 1..args.len(){
         ticker_fraction.push(1.0 / (args.len() as f64));
     }
 
     let mut portfolio : RebalancePortfolioVecBollinger = RebalancePortfolioVecBollinger::new(initial_capital, &ticker_fraction, fee_rate, price_histories.clone(), bollinger_bands.clone());
 
-    let mut cnt_strategy = 1;
     for duration in vec_duration.iter(){
         let tmp_rolling = portfolio.rolling_return(*duration);
         let (avg, _, _, perc) = analyze(&tmp_rolling, initial_capital);
@@ -263,18 +231,11 @@ fn main_bollinger(){
         let cap = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
         
-        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-        
-    
-        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
-        //cnt_strategy += 4;
         println!("리밸런싱(Bollinger Band), 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, cap.0 / initial_capital, cap.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);        
     }
 
     let mut ticker_fraction = Vec::new();
-    for i in 1..args.len(){
+    for _ in 1..args.len(){
         ticker_fraction.push(1.0 / (args.len() as f64 - 1.0));
     }
 
@@ -290,13 +251,7 @@ fn main_bollinger(){
                 
         let c = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
-        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-
-        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
-        //cnt_strategy += 4;
-               
+                       
         println!("보유, 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, c.0 / initial_capital, c.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
     }
     //file.write_xlsx();
@@ -314,11 +269,11 @@ fn main_vec(){
     for i in 1..args.len(){
         files.push(StockFile::new(&format!("{}.xlsx", args[i])));        
     }
-    let (date_vec, prices, prev_maximum) = files[0].load(0);
+    let (date_vec, prices, prev_maximum, prev_minimum) = files[0].load(0);
     price_histories.push(prices);
 
     for i in 2..args.len(){
-        let (_, price_vec, _) = files[i-1].load(0);
+        let (_, price_vec, _,  _) = files[i-1].load(0);
         price_histories.push(price_vec);
     }
     let fee_rate = 0.25;
@@ -333,7 +288,6 @@ fn main_vec(){
 
     let mut portfolio_vec :Vec<RebalancePortfolioVec> = threshold.iter().map(|x| RebalancePortfolioVec::new(initial_capital, &ticker_fraction, fee_rate, *x, price_histories[0].clone())).collect();
     
-    let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
         for duration in vec_duration.iter(){
             let tmp_rolling = p.rolling_return(*duration);
@@ -351,7 +305,7 @@ fn main_vec(){
     }
 
     let mut ticker_fraction = Vec::new();
-    for i in 1..args.len(){
+    for _ in 1..args.len(){
         ticker_fraction.push(1.0 / (args.len() as f64 - 1.0));
     }
 
@@ -380,14 +334,13 @@ fn main_original(){
     let args: Vec<String> = env::args().collect();
     let file_name = format!("{}.xlsx", args[1]);
     let mut file = StockFile::new(&file_name);
-    let (date_vec, prices, prev_maximum) = file.load(0);
+    let (date_vec, prices, prev_maximum, prev_minimum) = file.load(0);
     let fee_rate = 0.25;
     let initial_capital = 100_000.0;
     let threshold = vec![0.1, 0.2, 0.3];
     let vec_duration: Vec<usize> = vec![250, 500, 1000, 2000, 2500];
 
     let mut portfolio_vec :Vec<RebalancePortfolio> = threshold.iter().map(|x| RebalancePortfolio::new(initial_capital, *x, 0.5, fee_rate, prices.clone())).collect();
-    let mut cnt_strategy = 1;
     for p in portfolio_vec.iter_mut(){
         for duration in vec_duration.iter(){
             let tmp_rolling = p.rolling_return(*duration);
@@ -399,14 +352,6 @@ fn main_original(){
             let min_id = min_indices[0];
             let cap = tmp_rolling[max_id].unwrap();
             let cap_min = tmp_rolling[min_id].unwrap();
-            
-            //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-            //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-            //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-            
-            //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("리밸런싱({}), 기간 {}", p.diff_ratio, *duration), &dates, &profits, &mdds);
-            //cnt_strategy += 4;
-            
             println!("리밸런싱({}), 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", p.threshold, duration, avg / initial_capital, perc, cap.0 / initial_capital, cap.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
         }
     }
@@ -423,12 +368,6 @@ fn main_original(){
                 
         let c = tmp_rolling[max_id].unwrap();
         let cap_min = tmp_rolling[min_id].unwrap();
-        //let profits : Vec<f64> = max_indices.iter().map(|id| tmp_rolling[*id].unwrap() / initial_capital).collect();                        
-        //let mdds : Vec<f64> = max_indices.iter().map(|id| prices[id - *duration] / prev_maximum[id - *duration]).collect();
-        //let dates : Vec<String> = max_indices.iter().map(|id| date_vec[id - *duration].clone()).collect();
-
-        //file.write_sorted_vec(1, (cnt_strategy, 1), &format!("보유, 기간 {}", *duration), &dates, &profits, &mdds);
-        //cnt_strategy += 4;
                
         println!("보유, 기간 {} : 평균수익률 = {:.2}, 플러스수익확률 = {:.2}, 최대수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}, 최소수익률 = {:.2}, mdd = {:.2}, 시작날짜 = {}", duration, avg / initial_capital, perc, c.0 / initial_capital, c.1, date_vec[max_id - *duration], cap_min.0 / initial_capital, cap_min.1, date_vec[min_id - *duration]);
     }

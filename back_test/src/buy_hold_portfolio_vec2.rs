@@ -26,12 +26,7 @@ impl BuyHoldPortfolioVec2{
             total_stock += self.assets[idx].0 * p[date_idx];
         }        
         self.assets[self.price_histories.len()].0 = self.initial_capital - total_stock * (1.0 + 0.01 * self.fee_rate);
-    }
-    
-    fn get_total_rate(&self, date_idx : usize) -> (f64, f64) {
-        let total_val = self.price_histories.iter().enumerate().fold(self.assets.last().unwrap().0, |acc: f64, (idx, p)| acc + self.assets[idx].0 * p[date_idx]);
-        (total_val, total_val / self.initial_capital)        
-    }    
+    }        
 }
 
 impl Backtester for BuyHoldPortfolioVec2{

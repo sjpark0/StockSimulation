@@ -1,6 +1,5 @@
 use crate::backtester::Backtester;
 use crate::types::{CapitalReturns, StockPrices};
-use std::time::Instant;
 
 pub struct RebalancePortfolio{
     initial_capital : f64,
@@ -50,7 +49,7 @@ impl Backtester for RebalancePortfolio{
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
         let mut local_maximum: f64 = 0.0;
         let mut mdd: f64 = 0.0;
-        let mut total_val = 0.0;
+        let mut total_val;
 
         self.initial_investment();        
         for i in start..=end{

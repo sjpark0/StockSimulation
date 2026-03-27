@@ -16,15 +16,8 @@ impl BuyHoldPortfolioVec{
         Self { initial_capital : initial_capital, assets : assets, fee_rate : fee_rate, price_history : price_history}
     }    
     fn process_price(&mut self, current_price : f64){
-        let mut total_stock = 0.0;
-
         self.assets[0].0 = (self.initial_capital / current_price).floor();
         self.assets[1].0 = self.initial_capital - self.assets[0].0 * current_price * (1.0 + self.fee_rate * 0.01);        
-    }
-    
-    fn get_total_rate(&self, current_price : f64) -> (f64, f64) {
-        let total_val = self.assets[1].0 + self.assets[0].0 * current_price;
-        (total_val, total_val / self.initial_capital)
     }
 }
 

@@ -1,6 +1,4 @@
 use crate::types::CapitalReturns;
-use std::time::Instant;
-
 
 pub trait Backtester{    
     fn process_backtester(&mut self, price_history : &[f64], start : usize, end : usize) -> (f64, f64);

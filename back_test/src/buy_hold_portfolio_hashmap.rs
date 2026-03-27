@@ -1,17 +1,17 @@
 use crate::backtester::Backtester;
-use crate::types::{Assets_Hashmap, CapitalReturns, StockPrices};
+use crate::types::{AssetsHashmap, CapitalReturns, StockPrices};
 use std::collections::HashMap;
 
 pub struct BuyHoldPortfolioHashmap{
     initial_capital : f64,
-    assets : Assets_Hashmap,
+    assets : AssetsHashmap,
     fee_rate : f64,
     price_histories : HashMap<String, StockPrices>,
 }
 
 impl BuyHoldPortfolioHashmap{    
     pub fn new(initial_capital: f64, fee_rate: f64, tickers_fraction : &[(String, f64)], price_histories : HashMap<String, StockPrices>) -> Self{
-        let mut assets = Assets_Hashmap(HashMap::new());
+        let mut assets = AssetsHashmap(HashMap::new());
         let mut fractions = 1.0;
         for (t, f) in tickers_fraction.iter(){
             assets.insert(t.to_string(), (0.0, *f));
@@ -28,7 +28,7 @@ impl BuyHoldPortfolioHashmap{
                 total_stock += *qty * p[date_idx];
             }
         }
-        if let Some((val, f)) = self.assets.get_mut("CASH"){
+        if let Some((val, _)) = self.assets.get_mut("CASH"){
             *val = self.initial_capital - total_stock * (1.0 + 0.01 * self.fee_rate);
         }
     }

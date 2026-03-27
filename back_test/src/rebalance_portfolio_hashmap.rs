@@ -1,10 +1,10 @@
 use crate::backtester::Backtester;
-use crate::types::{Assets_Hashmap, CapitalReturns, StockPrices};
+use crate::types::{AssetsHashmap, CapitalReturns, StockPrices};
 use std::collections::HashMap;
 
 pub struct RebalancePortfolioHashmap{
     initial_capital : f64,
-    assets : Assets_Hashmap,
+    assets : AssetsHashmap,
     fee_rate : f64,
     pub threshold: f64,    
     price_histories : HashMap<String, StockPrices>,
@@ -12,7 +12,7 @@ pub struct RebalancePortfolioHashmap{
 
 impl RebalancePortfolioHashmap{    
     pub fn new(initial_capital: f64, tickers_fraction : &[(String, f64)], fee_rate : f64, threshold: f64, price_histories : HashMap<String, StockPrices>) -> Self{
-        let mut assets = Assets_Hashmap(HashMap::new());
+        let mut assets = AssetsHashmap(HashMap::new());
         let mut fractions = 1.0;
         for (t, f) in tickers_fraction.iter(){
             assets.insert(t.to_string(), (0.0, *f));
@@ -32,7 +32,7 @@ impl RebalancePortfolioHashmap{
                 total_stock_value += *qty * p[date_idx] + fee;
             }
         }
-        if let Some((val, f)) = self.assets.get_mut("CASH"){
+        if let Some((val, _)) = self.assets.get_mut("CASH"){
             *val = total_value - total_stock_value;
         }
     }
@@ -66,7 +66,7 @@ impl Backtester for RebalancePortfolioHashmap{
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
         let mut local_maximum: f64 = 0.0;
         let mut mdd: f64 = 0.0;
-        let mut total_val = 0.0;
+        let mut total_val;
         self.initial_investment();
         for i in start..=end{
             total_val = self.process_price(i);

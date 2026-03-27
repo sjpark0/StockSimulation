@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 use std::collections::VecDeque;
 use std::collections::HashMap;
 
-pub struct CapitalReturns(pub(Vec<Option<(f64, f64)>>));
+pub struct CapitalReturns(pub Vec<Option<(f64, f64)>>);
 pub struct PortfolidIndices(pub Vec<usize>);
 
 #[derive(Clone)]
@@ -15,10 +15,10 @@ pub struct BollingerBand(pub Vec<Option<(f64, f64)>>);
 pub struct Assets(pub Vec<(f64, f64)>);
 
 
-pub struct Assets_Hashmap(pub HashMap<String, (f64, f64)>);
+pub struct AssetsHashmap(pub HashMap<String, (f64, f64)>);
 
 impl Deref for CapitalReturns {
-    type Target = (Vec<Option<(f64, f64)>>);
+    type Target = Vec<Option<(f64, f64)>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -73,7 +73,7 @@ impl DerefMut for Assets {
     }
 }
 
-impl Deref for Assets_Hashmap {
+impl Deref for AssetsHashmap {
     type Target = HashMap<String, (f64, f64)>;
 
     fn deref(&self) -> &Self::Target {
@@ -81,7 +81,7 @@ impl Deref for Assets_Hashmap {
     }
 }
 
-impl DerefMut for Assets_Hashmap {
+impl DerefMut for AssetsHashmap {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

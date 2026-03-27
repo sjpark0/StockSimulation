@@ -1,5 +1,3 @@
-use umya_spreadsheet::helper::date;
-
 use crate::backtester::Backtester;
 use crate::types::{Assets, CapitalReturns, StockPrices, BollingerBand};
 
@@ -55,7 +53,7 @@ impl Backtester for RebalancePortfolioVecBollinger{
     fn process_backtester(&mut self, start : usize, end : usize) -> (f64, f64){
         let mut local_maximum: f64 = 0.0;
         let mut mdd: f64 = 0.0;
-        let mut total_val = 0.0;
+        let mut total_val;
 
         self.initial_investment();
         for i in start..=end{
